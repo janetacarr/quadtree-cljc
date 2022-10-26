@@ -1,0 +1,16 @@
+{:paths ["src"
+         "test"]
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        org.clojure/clojurescript {:mvn/version "1.10.764"}}
+ :aliases {:build {:deps {io.github.seancorfield/build-clj
+                          {:git/tag "v0.8.0" :git/sha "9bd8b8a"}}
+                   :ns-default build}
+           :dev {:extra-deps {cider/cider-nrepl {:mvn/version "0.26.0"}}
+                 :main-opts ["-m" "nrepl.cmdline"
+                             "--middleware" "[cider.nrepl/cider-middleware]"]}
+           :shadow-cljs {:extra-deps {cider/cider-nrepl {:mvn/version "0.26.0"}
+                                      thheller/shadow-cljs {:mvn/version "2.11.23"}
+                                      cider/piggieback {:mvn/version "0.5.2"}}
+                         :extra-paths ["src"
+                                       "test"]
+                         :main-opts ["-m" "shadow.cljs.devtools.cli"]}}}
