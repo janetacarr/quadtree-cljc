@@ -114,7 +114,7 @@
 
 
 (defn insert
-  "insert `bounds-obj` into the node, returning a freshly grown  quadtree.
+  "insert `bounds-obj` into the node, returning a freshly grown quadtree.
   If the node exceeds the capacity, it will split and add all objects to
   their corresponding subnodes."
   [quadtree bounds-obj]
@@ -141,18 +141,17 @@
           (insert quadtree bounds-obj))
         (merge quadtree {:objects all-objects})))))
 
+(defn insert-all
+  "Takes a `quadtree` and inserts all bounds objects from the
+  bounds-objs vector."
+  [quadtree bounds-objs]
+  (reduce (fn [quadtree obj]
+            (merge quadtree (insert quadtree obj)))
+          quadtree
+          bounds-objs))
 
 
-(comment
-  "if not map, return thing
-if map and adding bounds-obj to map will exceed max then split quadtree
-and recurse.
 
-if map and adding bounds-obj to map has not exceeded max then check bounds and
-add bounds-obj to this node
-
-
-")
 (comment
   (-> (->bounds 0 0 800 600)
       (->quadtree 1 10 0 [] [] 0)
