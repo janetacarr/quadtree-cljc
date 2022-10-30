@@ -111,68 +111,50 @@
       (and right-quadrants top-quadrant) 0
       (and right-quadrants bottom-quadrant) 3)))
 
-#_(defn insert
-    "insert `bounds-obj` into the node, returning a freshly grown  quadtree.
-  If the node exceeds the capacity, it will split and add all objects to
-  their corresponding subnodes."
-    [quadtree bounds-obj]
-    (walk/postwalk
-     (fn [subtree]
-       (if (or (not (map? subtree))
-               (pos? (count (:nodes subtree)))
-               (:x subtree))
-         subtree
-         (let [{:keys [nodes objects bounds level max-levels
-                       max-objects objects]} subtree
-               {:keys [x y width height]} bounds
-               split-qt (split subtree)
-               quadrant (get-quadrant split-qt bounds-obj)
-               object-quadrants (reduce (fn [acc obj]
-                                          (let [quad (get-quadrant split-qt obj)]
-                                            (update acc quad #(conj % obj))))
-                                        {0 [] 1 [] 2 [] 3 []}
-                                        (conj objects bounds-obj))
-               new-nodes (vec
-                          (map-indexed (fn [idx node]
 
-                                         (merge node
-                                                {:objects (get object-quadrants idx)})
-                                         )
-                                       (:nodes split-qt)))]
-           (if (and (< level max-levels) (< (count objects) max-objects))
-             (if (and (<= x (:x bounds-obj))
-                      (<= y (:y bounds-obj))
-                      (> width (:width bounds-obj))
-                      (> height (:height bounds-obj)))
-               (merge subtree {:objects (conj (:objects subtree) bounds-obj)})
-               subtree)
-             (merge split-qt {:nodes new-nodes
-                              ;;:objects []
-                              })))))
-     quadtree))
 
 (defn insert
+  "insert `bounds-obj` into the node, returning a freshly grown  quadtree.
+  If the node exceeds the capacity, it will split and add all objects to
+  their corresponding subnodes."
   [quadtree bounds-obj]
-  (let [{:keys [nodes objects bounds level max-levels
+  (let [{:keys [nodes objects bounds
+                level max-levels
                 max-objects objects]} quadtree
         all-objects (conj objects bounds-obj)]
     (if (pos? (count nodes))
-      (insert (nth nodes (get-quadrant quadtree bounds-obj)) bounds-obj)
+      (as-> quadtree quadtree
+        (assoc quadtree :objects [])
+        (reduce (fn [quadtree obj]
+                  (let [quadrant (get-quadrant quadtree obj)
+                        nodes (:nodes quadtree)]
+                    (if quadrant
+                      (merge quadtree {:nodes (assoc nodes
+                                                     quadrant
+                                                     (insert (nth nodes quadrant)
+                                                             obj))})
+                      (update quadtree :objects #(conj % obj)))))
+                quadtree
+                all-objects))
       (if (and (> (count all-objects) max-objects) (< level max-levels))
-        (let [quadtree (if (pos? (count nodes)) quadtree (split quadtree))
-              nodes (:nodes quadtree)
-              object-quadrants (reduce (fn [acc obj]
-                                         (let [quad (get-quadrant quadtree obj)]
-                                           (update acc quad #(conj % obj))))
-                                       {0 [] 1 [] 2 [] 3 []}
-                                       all-objects)]
-          (merge quadtree
-                 {:objects (filter #(not (get-quadrant quadtree %)) all-objects)
-                  :nodes (vec
-                          (map-indexed (fn [idx node]
-
-                                         (merge node
-                                                {:objects (get object-quadrants idx)})
-                                         )
-                                       nodes))}))
+        (let [quadtree (if (empty? nodes) (split quadtree) quadtree)]
+          (insert quadtree bounds-obj))
         (merge quadtree {:objects all-objects})))))
+
+
+
+(comment
+  "if not map, return thing
+if map and adding bounds-obj to map will exceed max then split quadtree
+and recurse.
+
+if map and adding bounds-obj to map has not exceeded max then check bounds and
+add bounds-obj to this node
+
+
+")
+(comment
+  (-> (->bounds 0 0 800 600)
+      (->quadtree 1 10 0 [] [] 0)
+      (insert {:x 5 :y 10 :width 10 :height 10}))
+  )
