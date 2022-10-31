@@ -1,57 +1,19 @@
-(ns quadtree-cljc.core
-  (:require [clojure.walk :as walk]))
-
-(comment
-  (def bounds {:x "double"
-               :y "double"
-               :width "double"
-               :height "doubel"})
-
-  (def quadtree {:bound bounds
-                 :max-objects "int"
-                 :max-levels "int"
-                 :level "int"
-                 :objects "vector of bounds"
-                 :nodes "vector of quadtree maps"
-                 :total "int"}))
+(ns quadtree-cljc.core)
 
 (defn ->quadtree
   "Returns a map representing a quadtree"
-  [bounds max-objects max-levels level objects nodes total]
+  [bounds max-objects max-levels level objects nodes]
   {:bounds bounds
    :max-objects max-objects
    :max-levels max-levels
    :level level
    :objects objects
-   :nodes nodes
-   :total total})
+   :nodes nodes})
 
 (defn ->bounds
   "Returns a map representing a bounding box"
   [x y width height]
   {:x x :y y :width width :height height})
-
-(defn point?
-  "Returns true if this object is a point in space
-  as in it has no width or height"
-  [{:keys [x y width height]}]
-  (and (= width 0)
-       (= height 0)))
-
-(defn intersects?
-  "Takes two object bounds and returns true if they
-  intersect. "
-  [obj-a obj-b]
-  (let [{x-a :x y-a :y width-a :width height-a :height} obj-a
-        {x-b :x y-b :y width-b :width height-b :height} obj-b
-        max-x-for-a (+ x-a width-a)
-        max-y-for-a (+ y-a height-a)
-        max-x-for-b (+ x-b width-b)
-        max-y-for-b (+ y-b height-b)]
-    (not (or (< max-x-for-a x-b)
-             (> x-a max-x-for-b)
-             (< max-y-for-a y-b)
-             (> y-a max-y-for-b)))))
 
 (defn total-nodes
   "Returns the total number of sub-trees in `quadtree`. Valid
@@ -111,10 +73,8 @@
       (and right-quadrants top-quadrant) 0
       (and right-quadrants bottom-quadrant) 3)))
 
-
-
 (defn insert
-  "insert `bounds-obj` into the node, returning a freshly grown quadtree.
+  "Insert `bounds-obj` into the node, returning a freshly grown quadtree.
   If the node exceeds the capacity, it will split and add all objects to
   their corresponding subnodes."
   [quadtree bounds-obj]
@@ -150,10 +110,51 @@
           quadtree
           bounds-objs))
 
+(defn retrieve
+  "Retrieves a vector of all the bounds objects that could collide with
+  `bounds-obj` in `quadtree`."
+  [quadtree bounds-obj]
+  (->> (let [quadrant (get-quadrant quadtree bounds-obj)
+             nodes (:nodes quadtree)]
+         (if (pos? (count nodes))
+           (if quadrant
+             (retrieve (nth nodes quadrant) bounds-obj)
+             (mapv #(retrieve % bounds-obj) nodes))
+           (:objects quadtree)))
+       (flatten)
+       (vec)))
 
+(defn point?
+  "Returns true if this object is a point in space
+  as in it has no width or height"
+  [{:keys [x y width height]}]
+  (and (= width 0) (= height 0)))
 
-(comment
-  (-> (->bounds 0 0 800 600)
-      (->quadtree 1 10 0 [] [] 0)
-      (insert {:x 5 :y 10 :width 10 :height 10}))
-  )
+(defn retrieve-points
+  "Returns a vector of all the points that collide/intersect
+  with `bounds-obj` in the `quadtree`."
+  [quadtree bounds-obj]
+  (filterv #(and (= (:x %) (:x bounds-obj))
+                 (= (:y %) (:y bounds-obj))
+                 (point? %)) (retrieve quadtree bounds-obj)))
+
+(defn intersects?
+  "Takes two object bounds and returns true if they
+  intersect. "
+  [obj-a obj-b]
+  (let [{x-a :x y-a :y width-a :width height-a :height} obj-a
+        {x-b :x y-b :y width-b :width height-b :height} obj-b
+        max-x-for-a (+ x-a width-a)
+        max-y-for-a (+ y-a height-a)
+        max-x-for-b (+ x-b width-b)
+        max-y-for-b (+ y-b height-b)]
+    (not (or (< max-x-for-a x-b)
+             (> x-a max-x-for-b)
+             (< max-y-for-a y-b)
+             (> y-a max-y-for-b)))))
+
+(defn retrieve-intersections
+  "Returns all a vector of all the objects that collide/intersect
+  with `bounds-obj` in the `quadtree`."
+  [quadtree bounds-obj]
+  (filterv #(intersects? % bounds-obj) (retrieve quadtree bounds-obj)))
