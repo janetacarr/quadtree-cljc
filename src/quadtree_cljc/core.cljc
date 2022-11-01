@@ -26,8 +26,10 @@
       0)))
 
 (defn split
-  "Splits `quadtree` into 4 sub-nodes returns
-  `quadtree` if this quadtree already has four nodes"
+  "Splits a `quadtree` created with `->quadtree` into
+  4 sub-nodes returns `quadtree` if this quadtree already
+  has four nodes. Returns nil if you passed the wrong type
+  or doesn't have the required keywords."
   [quadtree]
   (let [{:keys [nodes level bounds]} quadtree
         {:keys [x y width height]} bounds
@@ -53,7 +55,7 @@
               (sub-quadtree quadtree (+ x sub-width) (+ y sub-height) sub-width sub-height next-level)]))))
 
 (defn get-quadrant
-  "Determine the quadrant `bounds-obj` belongs to in `quadtree"
+  "Determine the quadrant `bounds-obj` belongs to in `quadtree`"
   [quadtree bounds-obj]
   (let [default -1
         qt-bounds (:bounds quadtree)

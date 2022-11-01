@@ -10,8 +10,15 @@ To start building a quadtree, create a quadtree using `->quadtree`  with a bound
 ``` clojure
 user> (use 'quadtree-cljc.core)
 user> (def tree (-> (->bounds 0 0 800 600)
-                    (->quadtree 10 10 0 [] [])))
+                    (->quadtree 5 5 0 [] [])))
 ;; #'user/tree
+user> tree
+{:bounds {:x 0, :y 0, :width 800, :height 600},
+ :max-objects 5,
+ :max-levels 5,
+ :level 0,
+ :objects [],
+ :nodes []}
 user>
 ```
 
