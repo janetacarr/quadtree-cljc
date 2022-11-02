@@ -1,6 +1,6 @@
 # quadtree-cljc
 
-[![Clojars Project](https://img.shields.io/clojars/v/com.janetacarr/quadtree-cljc.svg)](https://clojars.org
+[![Clojars Project](https://img.shields.io/clojars/v/com.janetacarr/quadtree-cljc.svg)](https://clojars.org/com.janetacarr/quadtree-cljc)
 
 A quadtree implementation for clojure(script) inspired by [this](https://github.com/janetacarr/quadtree-go/blob/master/quadtree.go) implementation of a quadtree, but with a dash of functional programming flair added by yours truly.
 
