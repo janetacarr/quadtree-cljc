@@ -27,8 +27,8 @@
 
 (defn- split-impl
   "Transient implementation for `split`. Do not use."
-  [quadtree-transient quadtree-master]
-  (let [{:keys [nodes level bounds]} quadtree-transient
+  [quadtree]
+  (let [{:keys [nodes level bounds max-objects max-levels]} quadtree
         {:keys [x y width height]} bounds
         next-level (inc level)
         sub-width (/ width 2)
@@ -36,39 +36,40 @@
         sub-quadtree (fn sub-quadtree
                        [quadtree x y width height level]
                        (transient
-                        (assoc quadtree-master
-                               :bounds {:x x
-                                        :y y
-                                        :width width
-                                        :height height}
-                               :level level
-                               :objects []
-                               :nodes [])))]
+                        (->quadtree {:x x
+                                     :y y
+                                     :width width
+                                     :height height}
+                                    max-objects
+                                    max-levels
+                                    level
+                                    []
+                                    [])))]
     (if (= (count nodes) 4)
-      quadtree-transient
-      (assoc! quadtree-transient
+      quadtree
+      (assoc! quadtree
               :nodes
               (transient
                (vector
-                (sub-quadtree quadtree-master
+                (sub-quadtree quadtree
                               (+ x sub-width)
                               y
                               sub-width
                               sub-height
                               next-level)
-                (sub-quadtree quadtree-master
+                (sub-quadtree quadtree
                               x
                               y
                               sub-width
                               sub-height
                               next-level)
-                (sub-quadtree quadtree-master
+                (sub-quadtree quadtree
                               x
                               (+ y sub-height)
                               sub-width
                               sub-height
                               next-level)
-                (sub-quadtree quadtree-master
+                (sub-quadtree quadtree
                               (+ x sub-width)
                               (+ y sub-height)
                               sub-width
@@ -82,7 +83,7 @@
   or doesn't have the required keywords."
   [quadtree]
   (persistent!
-   (let [transient-quadtree (split-impl (transient quadtree) quadtree)]
+   (let [transient-quadtree (split-impl (transient quadtree))]
      (assoc! transient-quadtree
              :nodes
              (->> transient-quadtree
