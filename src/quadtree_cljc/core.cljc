@@ -112,10 +112,7 @@
       (and right-quadrants top-quadrant) 0
       (and right-quadrants bottom-quadrant) 3)))
 
-(defn insert
-  "Inserts `bounds-obj` into the `quadtree` created with `->quadtree`, returning
-  a freshly grown quadtree. If the quadtree exceeds the capacity, it will split
-  and add all objects to their corresponding subnodes."
+(defn- insert-impl
   [quadtree bounds-obj]
   (let [{:keys [nodes objects bounds
                 level max-levels
@@ -123,22 +120,57 @@
         all-objects (conj objects bounds-obj)]
     (if (pos? (count nodes))
       (as-> quadtree quadtree
-        (assoc quadtree :objects [])
+        (assoc! quadtree :objects [])
         (reduce (fn [quadtree obj]
                   (let [quadrant (get-quadrant quadtree obj)
                         nodes (:nodes quadtree)]
                     (if quadrant
-                      (merge quadtree {:nodes (assoc nodes
-                                                     quadrant
-                                                     (insert (nth nodes quadrant)
-                                                             obj))})
-                      (update quadtree :objects #(conj % obj)))))
+                      (assoc! quadtree :nodes (assoc! nodes
+                                                      quadrant
+                                                      (insert-impl (nth nodes quadrant)
+                                                                   obj)))
+                      (let [new-objects (conj (:objects quadtree) obj)]
+                        (assoc! quadtree :objects new-objects)))))
                 quadtree
                 all-objects))
       (if (and (> (count all-objects) max-objects) (< level max-levels))
-        (let [quadtree (if (empty? nodes) (split quadtree) quadtree)]
-          (insert quadtree bounds-obj))
-        (merge quadtree {:objects all-objects})))))
+        (let [quadtree (if (= 0 (count nodes)) (split-impl quadtree) quadtree)]
+          (insert-impl quadtree bounds-obj))
+        (assoc! quadtree :objects all-objects)))))
+
+(defn- persist-insert
+  "Recursively make this `quadtree` persistent!"
+  [quadtree]
+  (if (pos? (count (:nodes quadtree)))
+    (persistent!
+     (assoc! quadtree
+             :nodes
+             (->> quadtree
+                  (:nodes)
+                  (persistent!)
+                  (mapv persist-insert))))
+    (persistent! quadtree)))
+
+(defn- transient-insert
+  "Recursively make this `quadtree` transient"
+  [quadtree]
+  (if (pos? (count (:nodes quadtree)))
+    (transient
+     (assoc quadtree
+            :nodes
+            (->> quadtree
+                 (:nodes)
+                 (mapv transient-insert)
+                 (transient))))
+    (transient quadtree)))
+
+(defn insert
+  "Inserts `bounds-obj` into the `quadtree` created with `->quadtree`, returning
+  a freshly grown quadtree. If the quadtree exceeds the capacity, it will split
+  and add all objects to their corresponding subnodes."
+  [quadtree bounds-obj]
+  (persist-insert
+   (insert-impl (transient-insert quadtree) bounds-obj)))
 
 (defn insert-all
   "Takes a `quadtree` and inserts all bounds objects from the
