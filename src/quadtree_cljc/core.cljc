@@ -176,10 +176,11 @@
   "Takes a `quadtree` and inserts all bounds objects from the
   bounds-objs vector."
   [quadtree bounds-objs]
-  (reduce (fn [quadtree obj]
-            (merge quadtree (insert quadtree obj)))
-          quadtree
-          bounds-objs))
+  (persist-insert
+   (reduce (fn [quadtree obj]
+             (insert-impl quadtree obj))
+           (transient-insert quadtree)
+           bounds-objs)))
 
 (defn retrieve
   "Retrieves a vector of all the bounds objects that could collide with
