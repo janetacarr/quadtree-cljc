@@ -22,8 +22,58 @@
   [quadtree]
   (let [nodes (:nodes quadtree)]
     (if (vector? nodes)
-      (reduce + 1 (map total-nodes nodes))
+      (reduce + 1 (mapv total-nodes nodes))
       0)))
+
+(defn- split-impl
+  "Transient implementation for `split`. Do not use."
+  [quadtree-transient quadtree-master]
+  (let [{:keys [nodes level bounds]} quadtree-transient
+        {:keys [x y width height]} bounds
+        next-level (inc level)
+        sub-width (/ width 2)
+        sub-height (/ height 2)
+        sub-quadtree (fn sub-quadtree
+                       [quadtree x y width height level]
+                       (transient
+                        (assoc quadtree-master
+                               :bounds {:x x
+                                        :y y
+                                        :width width
+                                        :height height}
+                               :level level
+                               :objects []
+                               :nodes [])))]
+    (if (= (count nodes) 4)
+      quadtree-transient
+      (assoc! quadtree-transient
+              :nodes
+              (transient
+               (vector
+                (sub-quadtree quadtree-master
+                              (+ x sub-width)
+                              y
+                              sub-width
+                              sub-height
+                              next-level)
+                (sub-quadtree quadtree-master
+                              x
+                              y
+                              sub-width
+                              sub-height
+                              next-level)
+                (sub-quadtree quadtree-master
+                              x
+                              (+ y sub-height)
+                              sub-width
+                              sub-height
+                              next-level)
+                (sub-quadtree quadtree-master
+                              (+ x sub-width)
+                              (+ y sub-height)
+                              sub-width
+                              sub-height
+                              next-level)))))))
 
 (defn split
   "Splits a `quadtree` created with `->quadtree` into
@@ -31,28 +81,14 @@
   has four nodes. Returns nil if you passed the wrong type
   or doesn't have the required keywords."
   [quadtree]
-  (let [{:keys [nodes level bounds]} quadtree
-        {:keys [x y width height]} bounds
-        next-level (inc level)
-        sub-width (/ width 2)
-        sub-height (/ height 2)
-        sub-quadtree (fn sub-quadtree
-                       [quadtree x y width height level]
-                       (merge quadtree {:bounds {:x x
-                                                 :y y
-                                                 :width width
-                                                 :height height}
-                                        :level level
-                                        :objects []
-                                        :nodes []}))]
-    (if (= (count nodes) 4)
-      quadtree
-      (assoc quadtree
+  (persistent!
+   (let [transient-quadtree (split-impl (transient quadtree) quadtree)]
+     (assoc! transient-quadtree
              :nodes
-             [(sub-quadtree quadtree (+ x sub-width) y sub-width sub-height next-level)
-              (sub-quadtree quadtree x y sub-width sub-height next-level)
-              (sub-quadtree quadtree x (+ y sub-height) sub-width sub-height next-level)
-              (sub-quadtree quadtree (+ x sub-width) (+ y sub-height) sub-width sub-height next-level)]))))
+             (->> transient-quadtree
+                  (:nodes)
+                  (persistent!)
+                  (mapv persistent!))))))
 
 (defn get-quadrant
   "Determine the quadrant `bounds-obj` belongs to in `quadtree`"
@@ -76,9 +112,9 @@
       (and right-quadrants bottom-quadrant) 3)))
 
 (defn insert
-  "Insert `bounds-obj` into the node, returning a freshly grown quadtree.
-  If the node exceeds the capacity, it will split and add all objects to
-  their corresponding subnodes."
+  "Inserts `bounds-obj` into the `quadtree` created with `->quadtree`, returning
+  a freshly grown quadtree. If the quadtree exceeds the capacity, it will split
+  and add all objects to their corresponding subnodes."
   [quadtree bounds-obj]
   (let [{:keys [nodes objects bounds
                 level max-levels

@@ -133,7 +133,7 @@
                 :nodes []}]} (split one-node)))
       (is (thrown? NullPointerException (split [])))
       (is (thrown? NullPointerException (split {})))
-      (is (thrown? NullPointerException (split 231321654))))))
+      (is (thrown? java.lang.ClassCastException (split 231321654))))))
 
 (deftest insert-tests
   (testing "insert via insert-all"
