@@ -67,3 +67,30 @@ user>
 
 If you were using this in a game, you might build up your quadtree on every game frame,
 inserting all your entities bounds, and then decide if you should update your entities.
+
+## Performance
+
+Benchmarked with [criterium](https://github.com/hugoduncan/criterium).
+
+### Using transients
+
+``` text
+Evaluation count : 12240 in 60 samples of 204 calls.
+Execution time mean : 5.252571 ms
+Execution time std-deviation : 179.697349 µs
+Execution time lower quantile : 4.918418 ms ( 2.5%)
+Execution time upper quantile : 5.610216 ms (97.5%)
+Overhead used : 7.309057 ns
+
+Found 1 outliers in 60 samples (1.6667 %)
+low-severe	 1 (1.6667 %)
+Variance from outliers : 20.6222 % Variance is moderately inflated by outliers
+```
+
+### Without transients
+Evaluation count : 11460 in 60 samples of 191 calls.
+Execution time mean : 5.495454 ms
+Execution time std-deviation : 244.913064 µs
+Execution time lower quantile : 5.178155 ms ( 2.5%)
+Execution time upper quantile : 5.969555 ms (97.5%)
+Overhead used : 6.707923 ns
