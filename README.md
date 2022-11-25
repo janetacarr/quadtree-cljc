@@ -88,9 +88,12 @@ Variance from outliers : 20.6222 % Variance is moderately inflated by outliers
 ```
 
 ### Without transients
+
+``` text
 Evaluation count : 11460 in 60 samples of 191 calls.
 Execution time mean : 5.495454 ms
 Execution time std-deviation : 244.913064 µs
 Execution time lower quantile : 5.178155 ms ( 2.5%)
 Execution time upper quantile : 5.969555 ms (97.5%)
 Overhead used : 6.707923 ns
+```
